@@ -12,6 +12,7 @@ import android.widget.Toast;
 import com.dt.wsjf.R;
 import com.dt.wsjf.base.BaseActivity;
 import com.dt.wsjf.utils.LogUtil;
+import com.dt.wsjf.utils.PhoneNumUtil;
 import com.umeng.socialize.ShareAction;
 import com.umeng.socialize.UMShareAPI;
 import com.umeng.socialize.UMShareListener;
@@ -59,6 +60,13 @@ public class MainActivity extends BaseActivity {
             @Override
             public void onClick(View v) {
                 pay(BP.PayType_Wechat);
+            }
+        });
+        Button addPhoneNum = (Button) findViewById(R.id.addPhoneNum_btn);
+        addPhoneNum.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                PhoneNumUtil.addContact(getApplicationContext(),"测试数据1","13888888888");
             }
         });
     }

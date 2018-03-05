@@ -9,7 +9,7 @@ buildscript {
         maven { url "https://raw.github.com/bmob/bmob-android-sdk/master" }
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.0.0-beta3'
+        classpath 'com.android.tools.build:gradle:3.0.1'
         //Bmob的maven仓库地址，必须填写
 
 
