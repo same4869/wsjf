@@ -1,10 +1,21 @@
 package com.dt.wsjf.utils;
 
+import android.content.ContentProviderOperation;
+import android.content.ContentProviderResult;
+import android.content.ContentResolver;
 import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.OperationApplicationException;
+import android.database.Cursor;
 import android.net.Uri;
+import android.os.RemoteException;
 import android.provider.ContactsContract;
+
+import com.dt.wsjf.bean.TbContacts;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Created by wangxun on 2018/3/5.
@@ -40,5 +51,71 @@ public class PhoneNumUtil {
         values.put(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE);
         // 向联系人电话号码URI添加电话号码
         context.getContentResolver().insert(ContactsContract.Data.CONTENT_URI, values);
+    }
+
+    public static void deleteContact(Context context, String name) {
+        //根据姓名求id
+        Uri uri = Uri.parse("content://com.android.contacts/raw_contacts");
+        ContentResolver resolver = context.getContentResolver();
+        Cursor cursor = resolver.query(uri, new String[]{ContactsContract.Data._ID}, "display_name=?", new String[]{name}, null);
+        if (cursor.moveToFirst()) {
+            int id = cursor.getInt(0);
+            //根据id删除data中的相应数据
+            resolver.delete(uri, "display_name=?", new String[]{name});
+            uri = Uri.parse("content://com.android.contacts/data");
+            resolver.delete(uri, "raw_contact_id=?", new String[]{id + ""});
+        }
+    }
+
+    /**
+     * 批量添加通讯录
+     *
+     */
+    public static void batchAddContact(Context context, ArrayList<TbContacts> list){
+        ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
+        LogUtil.d("开始添加联系人");
+        int rawContactInsertIndex = 0;
+        for (TbContacts contact : list) {
+            rawContactInsertIndex = ops.size(); // 有了它才能给真正的实现批量添加
+
+            ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
+                    .withValue(ContactsContract.RawContacts.ACCOUNT_TYPE, null)
+                    .withValue(ContactsContract.RawContacts.ACCOUNT_NAME, null)
+                    .withYieldAllowed(true).build());
+
+            // 添加姓名
+            ops.add(ContentProviderOperation
+                    .newInsert(
+                            android.provider.ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID,
+                            rawContactInsertIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, contact.getName())
+                    .withYieldAllowed(true).build());
+            // 添加号码
+            ops.add(ContentProviderOperation
+                    .newInsert(
+                            android.provider.ContactsContract.Data.CONTENT_URI)
+                    .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID,
+                            rawContactInsertIndex)
+                    .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, contact.getNumber())
+                    .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
+                    .withValue(ContactsContract.CommonDataKinds.Phone.LABEL, "").withYieldAllowed(true).build());
+        }
+        if (ops != null) {
+            // 真正添加
+            try {
+                ContentProviderResult[] results = context.getContentResolver()
+                        .applyBatch(ContactsContract.AUTHORITY, ops);
+            } catch (RemoteException e) {
+                e.printStackTrace();
+            } catch (OperationApplicationException e) {
+                e.printStackTrace();
+            } catch (Exception e){
+                e.printStackTrace();
+            }
+            LogUtil.d("开始添加联系人结束");
+        }
     }
 }
