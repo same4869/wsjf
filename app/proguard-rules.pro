@@ -122,3 +122,6 @@ public static final int *;
 -keep class com.android.dingtalk.share.ddsharemodule.** { *; }
 -keepattributes Signature
 
+-dontwarn com.tencent.bugly.**
+-keep public class com.tencent.bugly.**{*;}
+-keep class android.support.**{*;}

@@ -6,6 +6,7 @@ buildscript {
         mavenCentral()
         google()
         jcenter()
+        maven { url "https://jitpack.io" }
         maven { url "https://raw.github.com/bmob/bmob-android-sdk/master" }
     }
     dependencies {
@@ -23,6 +24,7 @@ allprojects {
         mavenCentral()
         google()
         jcenter()
+        maven { url "https://jitpack.io" }
         maven { url "https://raw.github.com/bmob/bmob-android-sdk/master" }
     }
 }

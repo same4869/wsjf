@@ -1,22 +1,19 @@
 package com.dt.wsjf.ui;
 
 import android.Manifest;
-import android.annotation.TargetApi;
-import android.app.Activity;
+import android.annotation.SuppressLint;
 import android.content.Intent;
 import android.content.pm.PackageManager;
-import android.os.Build;
 import android.os.Handler;
+import android.os.Message;
 import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
 import android.support.v4.content.ContextCompat;
-import android.support.v7.app.ActionBar;
-import android.view.Gravity;
-import android.view.LayoutInflater;
+import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
-import android.view.Window;
-import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -27,7 +24,7 @@ import com.dt.wsjf.utils.LogUtil;
 import com.dt.wsjf.utils.PhoneNumUtil;
 import com.dt.wsjf.view.BouncyBtnView;
 import com.dt.wsjf.view.ItemView;
-import com.readystatesoftware.systembartint.SystemBarTintManager;
+import com.dt.wsjf.view.VipRechargeDialog;
 import com.umeng.socialize.ShareAction;
 import com.umeng.socialize.UMShareAPI;
 import com.umeng.socialize.UMShareListener;
@@ -44,56 +41,132 @@ import commlib.xun.com.commlib.thread.CommThreadPool;
 public class MainActivity extends BaseActivity {
     private static final int MY_PERMISSION_REQUEST_CODE = 10000;
     private static final int PRE_PHONE_NUM = 50;
+    private static final int ADD_CONTACT_WHAT = 1001;
+    private static final int DELETE_CONTACT_WHAT = 1002;
+
     private BouncyBtnView bouncyBtnView;
     private TextView adsTv;
-    private SystemBarTintManager tintManager;
+    private ItemView vipItem, shuomingItem, saixuanItem, haoduanItem, qingchuItem, jiangshiItem, shareItem, aboutItem;
+    private LinearLayout loadingLayout;
+
+    private Boolean is2CallBack = false;// 是否双击退出
+
+    @SuppressLint("HandlerLeak")
+    private Handler mHandler = new Handler() {
+        @Override
+        public void handleMessage(Message msg) {
+            switch (msg.what) {
+                case ADD_CONTACT_WHAT:
+                    if (loadingLayout != null) {
+                        loadingLayout.setVisibility(View.GONE);
+                    }
+                    Toast.makeText(getApplicationContext(), "已成功导入粉丝号码到通讯录", Toast.LENGTH_SHORT).show();
+                    break;
+                case DELETE_CONTACT_WHAT:
+                    if (loadingLayout != null) {
+                        loadingLayout.setVisibility(View.GONE);
+                    }
+                    Toast.makeText(getApplicationContext(), "已成功删除通讯录临时数据", Toast.LENGTH_SHORT).show();
+                    break;
+                default:
+                    break;
+            }
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setTheme(R.style.Theme_Custom_AppCompat);
         setContentView(R.layout.activity_main);
-        setCustomActionBar();
-        initSystemBar(this);
 
-        setStatusBarColor(R.color.red);
         checkAndRequestPermission();
 
         initView();
-    }
-
-    private void initSystemBar(Activity activity) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            setTranslucentStatus(activity, true);
-            tintManager = new SystemBarTintManager(activity);
-            tintManager.setStatusBarTintEnabled(true);
-        }
-    }
-
-    public void setStatusBarColor(int color) {
-        tintManager.setStatusBarTintResource(color);
-    }
-
-    @TargetApi(19)
-    private void setTranslucentStatus(Activity activity, boolean on) {
-        Window win = activity.getWindow();
-        WindowManager.LayoutParams winParams = win.getAttributes();
-        final int bits = WindowManager.LayoutParams.FLAG_TRANSLUCENT_STATUS;
-        if (on) {
-            winParams.flags |= bits;
-        } else {
-            winParams.flags &= ~bits;
-        }
-        win.setAttributes(winParams);
     }
 
     private void initView() {
         bouncyBtnView = (BouncyBtnView) findViewById(R.id.jiafen_btn);
         adsTv = (TextView) findViewById(R.id.ads_tv);
         adsTv.setSelected(true);
+        bouncyBtnView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LogUtil.d("开始添加联系人");
+                loadingLayout.setVisibility(View.VISIBLE);
+                CommThreadPool.poolExecute(new Runnable() {
+                    @Override
+                    public void run() {
+                        ArrayList<TbContacts> list = new ArrayList<>();
+                        for (int i = 0; i < PRE_PHONE_NUM; i++) {
+                            TbContacts tbContacts = new TbContacts();
+                            tbContacts.setName("测试数据" + i);
+                            tbContacts.setNumber("138123456" + i);
+                            list.add(tbContacts);
+                        }
+                        PhoneNumUtil.batchAddContact(getApplicationContext(), list);
+                        LogUtil.d("结束添加联系人");
+                        mHandler.sendEmptyMessage(ADD_CONTACT_WHAT);
+                    }
+                });
+            }
+        });
 
-        Button button = (Button) findViewById(R.id.share_btn);
-        button.setOnClickListener(new View.OnClickListener() {
+        vipItem = (ItemView) findViewById(R.id.vip_item);
+        vipItem.setItemContent(R.drawable.vip_d, "升级VIP", "升级成VIP可以解除所有限制", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                VipRechargeDialog vipRechargeDialog = new VipRechargeDialog(MainActivity.this);
+                vipRechargeDialog.show();
+            }
+        });
+        shuomingItem = (ItemView) findViewById(R.id.shuoming_item);
+        shuomingItem.setItemContent(R.drawable.help_d, "使用帮助", "查看这里可以快速入门加粉", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        saixuanItem = (ItemView) findViewById(R.id.saixuan_item);
+        saixuanItem.setItemContent(R.drawable.saixuan, "筛选加粉", "可以让您更精准地加到需要的粉丝", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        haoduanItem = (ItemView) findViewById(R.id.haoduan_item);
+        haoduanItem.setItemContent(R.drawable.haoduan_d, "号段加粉", "可以让您根据号段来添加粉丝", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        qingchuItem = (ItemView) findViewById(R.id.qingchu_item);
+        qingchuItem.setItemContent(R.drawable.delete_d, "清除粉丝数据", "加粉后，可以通过这里一键还原通讯录数据", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                LogUtil.d("开始删除联系人");
+                loadingLayout.setVisibility(View.VISIBLE);
+                CommThreadPool.poolExecute(new Runnable() {
+                    @Override
+                    public void run() {
+                        for (int i = 0; i < PRE_PHONE_NUM; i++) {
+                            PhoneNumUtil.deleteContact(getApplicationContext(), "测试数据" + i);
+                        }
+                        LogUtil.d("结束删除联系人");
+                        mHandler.sendEmptyMessage(DELETE_CONTACT_WHAT);
+                    }
+                });
+            }
+        });
+        jiangshiItem = (ItemView) findViewById(R.id.jiangshi_item);
+        jiangshiItem.setItemContent(R.drawable.jiangshi, "清除死粉", "可以帮您迅速找到死粉与僵尸粉", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+
+            }
+        });
+        shareItem = (ItemView) findViewById(R.id.share_item);
+        shareItem.setItemContent(R.drawable.share_d, "分享软件", "分享我们的软件，可以增加加粉名额哦~", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 UMImage image = new UMImage(MainActivity.this, R.mipmap.ic_launcher);//资源文件
@@ -108,48 +181,28 @@ public class MainActivity extends BaseActivity {
                         .setCallback(umShareListener).open();
             }
         });
+        aboutItem = (ItemView) findViewById(R.id.about_item);
+        aboutItem.setItemContent(R.drawable.about_d, "关于我们", "了解软件最新进展与版本，以及提出您的宝贵意见", new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Intent intent = new Intent(MainActivity.this, AboutActivity.class);
+                startActivity(intent);
+            }
+        });
+
+        loadingLayout = (LinearLayout) findViewById(R.id.loadingView);
+        loadingLayout.setOnTouchListener(new View.OnTouchListener() {
+            @Override
+            public boolean onTouch(View v, MotionEvent event) {
+                return true;
+            }
+        });
+
         Button payButton = (Button) findViewById(R.id.pay_btn);
         payButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 pay(BP.PayType_Wechat);
-            }
-        });
-        Button addPhoneNum = (Button) findViewById(R.id.addPhoneNum_btn);
-        addPhoneNum.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                LogUtil.d("开始添加联系人");
-                CommThreadPool.poolExecute(new Runnable() {
-                    @Override
-                    public void run() {
-                        ArrayList<TbContacts> list = new ArrayList<>();
-                        for (int i = 0; i < PRE_PHONE_NUM; i++) {
-                            TbContacts tbContacts = new TbContacts();
-                            tbContacts.setName("测试数据" + i);
-                            tbContacts.setNumber("138123456" + i);
-                            list.add(tbContacts);
-                        }
-                        PhoneNumUtil.batchAddContact(getApplicationContext(), list);
-                        LogUtil.d("结束添加联系人");
-                    }
-                });
-            }
-        });
-        Button deletePhoneNum = (Button) findViewById(R.id.deletePhoneNum_btn);
-        deletePhoneNum.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                LogUtil.d("开始删除联系人");
-                CommThreadPool.poolExecute(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (int i = 0; i < PRE_PHONE_NUM; i++) {
-                            PhoneNumUtil.deleteContact(getApplicationContext(), "测试数据" + i);
-                        }
-                        LogUtil.d("结束删除联系人");
-                    }
-                });
             }
         });
     }
@@ -187,17 +240,6 @@ public class MainActivity extends BaseActivity {
                 bouncyBtnView.popAnimation(true);
             }
         }, 300);
-    }
-
-    private void setCustomActionBar() {
-        ActionBar.LayoutParams lp =new ActionBar.LayoutParams(ActionBar.LayoutParams.MATCH_PARENT, ActionBar.LayoutParams.MATCH_PARENT, Gravity.CENTER);
-        View mActionBarView = LayoutInflater.from(this).inflate(R.layout.actionbar_layout, null);
-        ActionBar actionBar = getSupportActionBar();
-        actionBar.setCustomView(mActionBarView, lp);
-        actionBar.setDisplayOptions(ActionBar.DISPLAY_SHOW_CUSTOM);
-        actionBar.setDisplayShowCustomEnabled(true);
-        actionBar.setDisplayShowHomeEnabled(false);
-        actionBar.setDisplayShowTitleEnabled(false);
     }
 
     /**
@@ -302,5 +344,26 @@ public class MainActivity extends BaseActivity {
                 LogUtil.d("权限没有同意");
             }
         }
+    }
+
+    @Override
+    public boolean onKeyDown(int keyCode, KeyEvent event) {
+
+        if (keyCode == KeyEvent.KEYCODE_BACK) {
+            if (!is2CallBack) {
+                is2CallBack = true;
+                Toast.makeText(this, "再按一次退出微商快粉", Toast.LENGTH_SHORT).show();
+                new Handler().postDelayed(new Runnable() {
+                    @Override
+                    public void run() {
+                        is2CallBack = false;
+                    }
+                }, 2500);
+
+            } else {
+                android.os.Process.killProcess(android.os.Process.myPid());
+            }
+        }
+        return true;
     }
 }

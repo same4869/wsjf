@@ -7,6 +7,8 @@ import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
+import android.widget.TextView;
 
 import com.dt.wsjf.R;
 
@@ -14,7 +16,12 @@ import com.dt.wsjf.R;
  * Created by wangxun on 2018/3/11.
  */
 
-public class ItemView extends FrameLayout{
+public class ItemView extends FrameLayout {
+    private ImageView itemIcon;
+    private TextView itemTitle;
+    private TextView itemTip;
+    private View rootView;
+
     public ItemView(@NonNull Context context) {
         super(context);
         init(context);
@@ -31,6 +38,16 @@ public class ItemView extends FrameLayout{
     }
 
     private void init(Context context) {
-        View rootView = LayoutInflater.from(context).inflate(R.layout.item_view_layout, this);
+        rootView = LayoutInflater.from(context).inflate(R.layout.item_view_layout, this);
+        itemIcon = (ImageView) rootView.findViewById(R.id.title_icon);
+        itemTitle = (TextView) rootView.findViewById(R.id.item_title);
+        itemTip = (TextView) rootView.findViewById(R.id.item_tip);
+    }
+
+    public void setItemContent(int ResId, String tilte, String tip, OnClickListener listener) {
+        itemIcon.setImageResource(ResId);
+        itemTitle.setText(tilte);
+        itemTip.setText(tip);
+        rootView.setOnClickListener(listener);
     }
 }

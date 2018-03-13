@@ -2,6 +2,7 @@ package com.dt.wsjf.app;
 
 import android.app.Application;
 
+import com.tencent.bugly.Bugly;
 import com.umeng.commonsdk.UMConfigure;
 import com.umeng.socialize.PlatformConfig;
 import com.umeng.socialize.UMShareAPI;
@@ -27,5 +28,7 @@ public class WsjfApplication extends Application {
 
         Bmob.initialize(this, "7d7e3edbad217c02d94bf22e3123739c");
         BP.init("7d7e3edbad217c02d94bf22e3123739c");
+
+        Bugly.init(getApplicationContext(), "ea3afe01a5", false);
     }
 }
