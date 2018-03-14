@@ -23,4 +23,18 @@
         <item name="elevation">0dp</item>
     </style>
 
+    <style name="CommDialogStyle" parent="@android:style/Theme.Dialog">
+        <item name="android:windowFrame">@null</item>
+        <item name="android:windowNoTitle">true</item>
+        <item name="android:windowIsFloating">true</item>
+        <item name="android:windowContentOverlay">@null</item>
+        <item name="android:windowAnimationStyle">@style/BottomUpDialogAnim</item>
+        <item name="android:backgroundDimEnabled">true</item>
+    </style>
+
+    <style name="BottomUpDialogAnim">
+        <item name="android:windowEnterAnimation">@anim/comm_dialog_bottom_up</item>
+        <item name="android:windowExitAnimation">@anim/comm_dialog_bottom_down</item>
+    </style>
+
 </resources>

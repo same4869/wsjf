@@ -12,7 +12,7 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.ContactsContract;
 
-import com.dt.wsjf.bean.TbContacts;
+import com.dt.wsjf.bean.phonelist;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -57,11 +57,11 @@ public class PhoneNumUtil {
         //根据姓名求id
         Uri uri = Uri.parse("content://com.android.contacts/raw_contacts");
         ContentResolver resolver = context.getContentResolver();
-        Cursor cursor = resolver.query(uri, new String[]{ContactsContract.Data._ID}, "display_name=?", new String[]{name}, null);
+        Cursor cursor = resolver.query(uri, new String[]{ContactsContract.Data._ID}, "display_name LIKE ?", new String[]{name + "%"}, null);
         if (cursor.moveToFirst()) {
             int id = cursor.getInt(0);
             //根据id删除data中的相应数据
-            resolver.delete(uri, "display_name=?", new String[]{name});
+            resolver.delete(uri, "display_name LIKE ? ", new String[]{name + "%"});
             uri = Uri.parse("content://com.android.contacts/data");
             resolver.delete(uri, "raw_contact_id=?", new String[]{id + ""});
         }
@@ -69,13 +69,12 @@ public class PhoneNumUtil {
 
     /**
      * 批量添加通讯录
-     *
      */
-    public static void batchAddContact(Context context, ArrayList<TbContacts> list){
+    public static void batchAddContact(Context context, List<phonelist> list) {
         ArrayList<ContentProviderOperation> ops = new ArrayList<ContentProviderOperation>();
         LogUtil.d("开始添加联系人");
         int rawContactInsertIndex = 0;
-        for (TbContacts contact : list) {
+        for (phonelist contact : list) {
             rawContactInsertIndex = ops.size(); // 有了它才能给真正的实现批量添加
 
             ops.add(ContentProviderOperation.newInsert(ContactsContract.RawContacts.CONTENT_URI)
@@ -90,7 +89,7 @@ public class PhoneNumUtil {
                     .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID,
                             rawContactInsertIndex)
                     .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.StructuredName.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, contact.getName())
+                    .withValue(ContactsContract.CommonDataKinds.StructuredName.DISPLAY_NAME, "微商快粉" + contact.getNick_name())
                     .withYieldAllowed(true).build());
             // 添加号码
             ops.add(ContentProviderOperation
@@ -99,7 +98,7 @@ public class PhoneNumUtil {
                     .withValueBackReference(ContactsContract.Data.RAW_CONTACT_ID,
                             rawContactInsertIndex)
                     .withValue(ContactsContract.Data.MIMETYPE, ContactsContract.CommonDataKinds.Phone.CONTENT_ITEM_TYPE)
-                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, contact.getNumber())
+                    .withValue(ContactsContract.CommonDataKinds.Phone.NUMBER, contact.getMobile())
                     .withValue(ContactsContract.CommonDataKinds.Phone.TYPE, ContactsContract.CommonDataKinds.Phone.TYPE_MOBILE)
                     .withValue(ContactsContract.CommonDataKinds.Phone.LABEL, "").withYieldAllowed(true).build());
         }
@@ -112,7 +111,7 @@ public class PhoneNumUtil {
                 e.printStackTrace();
             } catch (OperationApplicationException e) {
                 e.printStackTrace();
-            } catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
             LogUtil.d("开始添加联系人结束");

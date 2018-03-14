@@ -1,28 +1,28 @@
 package com.dt.wsjf.ui;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
-import android.support.v4.app.ActivityCompat;
 import android.os.Bundle;
-import android.support.v4.content.ContextCompat;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
-import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import com.dt.wsjf.R;
 import com.dt.wsjf.base.BaseActivity;
-import com.dt.wsjf.bean.TbContacts;
+import com.dt.wsjf.bean.phonelist;
+import com.dt.wsjf.utils.AppUtil;
 import com.dt.wsjf.utils.LogUtil;
+import com.dt.wsjf.utils.PayUtil;
 import com.dt.wsjf.utils.PhoneNumUtil;
 import com.dt.wsjf.view.BouncyBtnView;
+import com.dt.wsjf.view.CommDialog;
 import com.dt.wsjf.view.ItemView;
 import com.dt.wsjf.view.VipRechargeDialog;
 import com.umeng.socialize.ShareAction;
@@ -33,12 +33,16 @@ import com.umeng.socialize.media.UMImage;
 import com.umeng.socialize.media.UMWeb;
 
 import java.util.ArrayList;
+import java.util.List;
 
 import c.b.BP;
-import c.b.PListener;
+import cn.bmob.v3.BmobQuery;
+import cn.bmob.v3.exception.BmobException;
+import cn.bmob.v3.listener.CountListener;
+import cn.bmob.v3.listener.FindListener;
 import commlib.xun.com.commlib.thread.CommThreadPool;
 
-public class MainActivity extends BaseActivity {
+public class MainActivity extends BaseActivity implements VipRechargeDialog.VipRechargerItemCallBack {
     private static final int MY_PERMISSION_REQUEST_CODE = 10000;
     private static final int PRE_PHONE_NUM = 50;
     private static final int ADD_CONTACT_WHAT = 1001;
@@ -48,6 +52,7 @@ public class MainActivity extends BaseActivity {
     private TextView adsTv;
     private ItemView vipItem, shuomingItem, saixuanItem, haoduanItem, qingchuItem, jiangshiItem, shareItem, aboutItem;
     private LinearLayout loadingLayout;
+    private List<phonelist> phonelists = new ArrayList<>();
 
     private Boolean is2CallBack = false;// 是否双击退出
 
@@ -79,9 +84,10 @@ public class MainActivity extends BaseActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        checkAndRequestPermission();
+        AppUtil.checkAndRequestPermission(this, MY_PERMISSION_REQUEST_CODE);
 
         initView();
+        getPhoneListCount();
     }
 
     private void initView() {
@@ -91,23 +97,7 @@ public class MainActivity extends BaseActivity {
         bouncyBtnView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                LogUtil.d("开始添加联系人");
-                loadingLayout.setVisibility(View.VISIBLE);
-                CommThreadPool.poolExecute(new Runnable() {
-                    @Override
-                    public void run() {
-                        ArrayList<TbContacts> list = new ArrayList<>();
-                        for (int i = 0; i < PRE_PHONE_NUM; i++) {
-                            TbContacts tbContacts = new TbContacts();
-                            tbContacts.setName("测试数据" + i);
-                            tbContacts.setNumber("138123456" + i);
-                            list.add(tbContacts);
-                        }
-                        PhoneNumUtil.batchAddContact(getApplicationContext(), list);
-                        LogUtil.d("结束添加联系人");
-                        mHandler.sendEmptyMessage(ADD_CONTACT_WHAT);
-                    }
-                });
+                showAddOrDeleteDialog(0);
             }
         });
 
@@ -116,6 +106,7 @@ public class MainActivity extends BaseActivity {
             @Override
             public void onClick(View v) {
                 VipRechargeDialog vipRechargeDialog = new VipRechargeDialog(MainActivity.this);
+                vipRechargeDialog.setVipRechargerItemCallBack(MainActivity.this);
                 vipRechargeDialog.show();
             }
         });
@@ -144,18 +135,7 @@ public class MainActivity extends BaseActivity {
         qingchuItem.setItemContent(R.drawable.delete_d, "清除粉丝数据", "加粉后，可以通过这里一键还原通讯录数据", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                LogUtil.d("开始删除联系人");
-                loadingLayout.setVisibility(View.VISIBLE);
-                CommThreadPool.poolExecute(new Runnable() {
-                    @Override
-                    public void run() {
-                        for (int i = 0; i < PRE_PHONE_NUM; i++) {
-                            PhoneNumUtil.deleteContact(getApplicationContext(), "测试数据" + i);
-                        }
-                        LogUtil.d("结束删除联系人");
-                        mHandler.sendEmptyMessage(DELETE_CONTACT_WHAT);
-                    }
-                });
+                showAddOrDeleteDialog(1);
             }
         });
         jiangshiItem = (ItemView) findViewById(R.id.jiangshi_item);
@@ -174,10 +154,10 @@ public class MainActivity extends BaseActivity {
                 image.setThumb(thumb);
                 image.compressStyle = UMImage.CompressStyle.SCALE;
                 UMWeb web = new UMWeb("http://www.baidu.com");
-                web.setTitle("This is music title");//标题
+                web.setTitle("微商快粉--十天加满你的微信好友");//标题
                 web.setThumb(thumb);  //缩略图
-                web.setDescription("my description");//描述
-                new ShareAction(MainActivity.this).withText("hello").withExtra(image).withMedia(web).setDisplayList(SHARE_MEDIA.SINA, SHARE_MEDIA.QQ, SHARE_MEDIA.WEIXIN, SHARE_MEDIA.ALIPAY, SHARE_MEDIA.DOUBAN, SHARE_MEDIA.SMS)
+                web.setDescription("我在使用一款超好用的人脉管理与营销工具，让微信的操作批量自动化，加粉、清粉，上面有上百万的用户信息，让我的加粉效率大大提高，你也快来下载吧：");//描述
+                new ShareAction(MainActivity.this).withText("微商快粉").withExtra(image).withMedia(web).setDisplayList(SHARE_MEDIA.SINA, SHARE_MEDIA.QQ, SHARE_MEDIA.WEIXIN, SHARE_MEDIA.ALIPAY, SHARE_MEDIA.DOUBAN, SHARE_MEDIA.SMS)
                         .setCallback(umShareListener).open();
             }
         });
@@ -197,25 +177,17 @@ public class MainActivity extends BaseActivity {
                 return true;
             }
         });
-
-        Button payButton = (Button) findViewById(R.id.pay_btn);
-        payButton.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                pay(BP.PayType_Wechat);
-            }
-        });
     }
 
     private UMShareListener umShareListener = new UMShareListener() {
         @Override
         public void onStart(SHARE_MEDIA share_media) {
-
+            LogUtil.d("umShareListener onStart");
         }
 
         @Override
         public void onResult(SHARE_MEDIA share_media) {
-
+            LogUtil.d("umShareListener onResult");
         }
 
         @Override
@@ -225,7 +197,7 @@ public class MainActivity extends BaseActivity {
 
         @Override
         public void onCancel(SHARE_MEDIA share_media) {
-
+            LogUtil.d("umShareListener onCancel");
         }
     };
 
@@ -242,92 +214,16 @@ public class MainActivity extends BaseActivity {
         }, 300);
     }
 
-    /**
-     * 调用支付
-     *
-     * @param payType 支付类型，BP.PayType_Alipay、BP.PayType_Wechat、BP.PayType_QQ
-     */
-    void pay(final int payType) {
-        final String name = "支付测试";
-
-        // 仍然可以通过这种方式支付，其中true为支付宝，false为微信
-        // BP.pay(name, getBody(), getPrice(), false, new PListener());
-
-        BP.pay(name, "随便", 0.01, payType, new PListener() {
-
-            // 支付成功,如果金额较大请手动查询确认
-            @Override
-            public void succeed() {
-                Toast.makeText(MainActivity.this, "支付成功!", Toast.LENGTH_SHORT).show();
-            }
-
-            // 无论成功与否,返回订单号
-            @Override
-            public void orderId(String orderId) {
-                // 此处应该保存订单号,比如保存进数据库等,以便以后查询
-            }
-
-            // 支付失败,原因可能是用户中断支付操作,也可能是网络原因
-            @Override
-            public void fail(int code, String reason) {
-                LogUtil.d("reason --> " + reason);
-                Toast.makeText(MainActivity.this, "支付中断!", Toast.LENGTH_SHORT).show();
-            }
-        });
-    }
-
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         UMShareAPI.get(this).onActivityResult(requestCode, resultCode, data);
     }
 
-    private void checkAndRequestPermission() {
-        boolean isAllGranted = checkPermissionAllGranted(
-                new String[]{
-                        Manifest.permission.READ_CONTACTS,
-                        Manifest.permission.WRITE_CONTACTS,
-                        Manifest.permission.GET_ACCOUNTS,
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                }
-        );
-        if (isAllGranted) {
-            return;
-        }
-
-        // 一次请求多个权限, 如果其他有权限是已经授予的将会自动忽略掉
-        ActivityCompat.requestPermissions(
-                this,
-                new String[]{
-                        Manifest.permission.READ_CONTACTS,
-                        Manifest.permission.WRITE_CONTACTS,
-                        Manifest.permission.GET_ACCOUNTS,
-                        Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
-                },
-                MY_PERMISSION_REQUEST_CODE
-        );
-    }
-
-    /**
-     * 检查是否拥有指定的所有权限
-     */
-    private boolean checkPermissionAllGranted(String[] permissions) {
-        for (String permission : permissions) {
-            if (ContextCompat.checkSelfPermission(this, permission) != PackageManager.PERMISSION_GRANTED) {
-                // 只要有一个权限没有被授予, 则直接返回 false
-                return false;
-            }
-        }
-        return true;
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
         if (requestCode == MY_PERMISSION_REQUEST_CODE) {
             boolean isAllGranted = true;
-
             // 判断是否所有的权限都已经授予了
             for (int grant : grantResults) {
                 if (grant != PackageManager.PERMISSION_GRANTED) {
@@ -335,7 +231,6 @@ public class MainActivity extends BaseActivity {
                     break;
                 }
             }
-
             if (isAllGranted) {
                 // 如果所有的权限都授予了, 则执行备份代码
                 LogUtil.d("权限都同意了");
@@ -348,7 +243,6 @@ public class MainActivity extends BaseActivity {
 
     @Override
     public boolean onKeyDown(int keyCode, KeyEvent event) {
-
         if (keyCode == KeyEvent.KEYCODE_BACK) {
             if (!is2CallBack) {
                 is2CallBack = true;
@@ -365,5 +259,113 @@ public class MainActivity extends BaseActivity {
             }
         }
         return true;
+    }
+
+    @Override
+    public void onVipItemClick(String title, int price, int position) {
+        PayUtil.pay(getApplicationContext(), title, price, BP.PayType_Wechat);
+    }
+
+    private void startAddContact() {
+        if (phonelists.size() < 1) {
+            Toast.makeText(getApplicationContext(), "请重新启动app再次尝试", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        LogUtil.d("开始添加联系人");
+        loadingLayout.setVisibility(View.VISIBLE);
+        CommThreadPool.poolExecute(new Runnable() {
+            @Override
+            public void run() {
+                PhoneNumUtil.batchAddContact(getApplicationContext(), phonelists);
+                LogUtil.d("结束添加联系人");
+                mHandler.sendEmptyMessage(ADD_CONTACT_WHAT);
+            }
+        });
+    }
+
+    private void startClearContact() {
+        LogUtil.d("开始删除联系人");
+        loadingLayout.setVisibility(View.VISIBLE);
+        CommThreadPool.poolExecute(new Runnable() {
+            @Override
+            public void run() {
+                for (int i = 0; i < PRE_PHONE_NUM; i++) {
+                    PhoneNumUtil.deleteContact(getApplicationContext(), "微商快粉");
+                }
+                LogUtil.d("结束删除联系人");
+                mHandler.sendEmptyMessage(DELETE_CONTACT_WHAT);
+            }
+        });
+    }
+
+    /**
+     * 添加删除联系人时二次确认
+     *
+     * @param type 0是添加，1是删除
+     */
+    private void showAddOrDeleteDialog(final int type) {
+        if (type == 0) {
+            commDialog = new CommDialog(this, "温馨提示", "确认要开始加粉吗？", false);
+        } else {
+            commDialog = new CommDialog(this, "温馨提示", "确认要开始清理通讯录吗(不会影响原来数据)？", false);
+        }
+        commDialog.setCanceledOnTouchOutside(false);
+        commDialog.show();
+        commDialog.hideTitle();
+        commDialog.setLeftButtonText("取消");
+        commDialog.setRightButtonText("确认");
+        commDialog.setLeftButtonPositive(false);
+        commDialog.setRightButtonPositive(true);
+        commDialog.setRightListener(new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                cancelDialog();
+                if (type == 0) {
+                    startAddContact();
+                } else {
+                    startClearContact();
+                }
+            }
+        });
+        commDialog.setLeftListener(new DialogInterface.OnClickListener() {
+
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                cancelDialog();
+            }
+        });
+    }
+
+    private void getPhoneListCount() {
+        BmobQuery<phonelist> query = new BmobQuery<phonelist>();
+        query.count(phonelist.class, new CountListener() {
+            @Override
+            public void done(Integer count, BmobException e) {
+                if (e == null) {
+                    LogUtil.d("getPhoneListCount count对象个数为：" + count);
+                    getPhoneListInfo((int) (count * Math.random()));
+                } else {
+                    LogUtil.d("getPhoneListCount 失败：" + e.getMessage() + "," + e.getErrorCode());
+                }
+            }
+        });
+    }
+
+    private void getPhoneListInfo(int max) {
+        BmobQuery<phonelist> query = new BmobQuery<phonelist>();
+        query.addWhereGreaterThan("id", max);
+        query.setLimit(50);
+        query.findObjects(new FindListener<phonelist>() {
+            @Override
+            public void done(List<phonelist> object, BmobException e) {
+                if (e == null) {
+                    phonelists = object;
+                    LogUtil.d("getPhoneListInfo phonelists初始化 size --> " + phonelists.size());
+                } else {
+                    LogUtil.d("getPhoneListInfo 失败：" + e.getMessage() + "," + e.getErrorCode());
+                }
+            }
+        });
     }
 }

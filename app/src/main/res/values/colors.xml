@@ -6,4 +6,8 @@
     <color name="red">#FF0000</color>
     <drawable name="gray1">#e5e5e5</drawable>
     <drawable name="white">#ffffff</drawable>
+    <color name="seperator">#EAEAEA</color>
+    <color name="white">#ffffff</color>
+    <color name="view_bg_1">#F5F5F9</color>
+    <color name="black">#000000</color>
 </resources>

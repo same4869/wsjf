@@ -14,6 +14,7 @@ import android.view.Window;
 import android.view.WindowManager;
 
 import com.dt.wsjf.R;
+import com.dt.wsjf.view.CommDialog;
 import com.readystatesoftware.systembartint.SystemBarTintManager;
 import com.umeng.analytics.MobclickAgent;
 
@@ -23,6 +24,9 @@ import com.umeng.analytics.MobclickAgent;
 
 public class BaseActivity extends AppCompatActivity {
     private SystemBarTintManager tintManager;
+    protected CommDialog commDialog;
+
+    private boolean isDestroyed = false;
 
     @Override
     protected void onResume() {
@@ -80,5 +84,26 @@ public class BaseActivity extends AppCompatActivity {
         actionBar.setDisplayShowCustomEnabled(true);
         actionBar.setDisplayShowHomeEnabled(false);
         actionBar.setDisplayShowTitleEnabled(false);
+    }
+
+    public boolean isActivityDestroyed() {
+        return isDestroyed;
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        isDestroyed = true;
+    }
+
+    public void cancelDialog() {
+        if (isActivityDestroyed()) {
+            commDialog = null;
+            return;
+        }
+        if (commDialog != null && commDialog.isShowing()) {
+            commDialog.dismiss();
+        }
+        commDialog = null;
     }
 }

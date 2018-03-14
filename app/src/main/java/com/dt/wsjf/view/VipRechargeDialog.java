@@ -30,6 +30,7 @@ public class VipRechargeDialog extends Dialog implements VipRechargeAdapter.OnIt
     private RecyclerView rechargeRecyclerView;
     private VipRechargeAdapter vipRechargeAdapter;
     private List<VipRechargeBean> data = new ArrayList<>();
+    private VipRechargerItemCallBack vipRechargerItemCallBack;
 
     public VipRechargeDialog(@NonNull Context context) {
         super(context);
@@ -39,22 +40,28 @@ public class VipRechargeDialog extends Dialog implements VipRechargeAdapter.OnIt
 
     private void initData() {
         VipRechargeBean data1 = new VipRechargeBean();
-        data1.setTitle("VIP30天");
-        data1.setPrice(10);
-        data1.setContent("成为VIP后无人数限制，无功能限制");
+        data1.setTitle("(限时)体验会员");
+        data1.setPrice(3);
+        data1.setContent("体验会员每天可加100粉，可使用3天");
         data.add(data1);
 
         VipRechargeBean data2 = new VipRechargeBean();
-        data2.setTitle("VIP60天");
-        data2.setPrice(20);
-        data2.setContent("成为VIP后无人数限制，无功能限制");
+        data2.setTitle("青铜会员");
+        data2.setPrice(29);
+        data2.setContent("青铜会员每天可加200粉，可使用30天");
         data.add(data2);
 
         VipRechargeBean data3 = new VipRechargeBean();
-        data3.setTitle("VIP90天");
-        data3.setPrice(30);
-        data3.setContent("成为VIP后无人数限制，无功能限制");
+        data3.setTitle("白银会员");
+        data3.setPrice(69);
+        data3.setContent("白银会员每天可加300粉，可使用90天");
         data.add(data3);
+
+        VipRechargeBean data4 = new VipRechargeBean();
+        data4.setTitle("黄金会员");
+        data4.setPrice(99);
+        data4.setContent("黄金会员每天加粉无限制，使用时间无限制");
+        data.add(data4);
 
     }
 
@@ -89,5 +96,16 @@ public class VipRechargeDialog extends Dialog implements VipRechargeAdapter.OnIt
     public void onItemClick(BaseQuickAdapter adapter, View view, int position) {
         dismiss();
         LogUtil.d("onItemClick position --> " + position);
+        if (vipRechargerItemCallBack != null) {
+            vipRechargerItemCallBack.onVipItemClick(data.get(position).getTitle(), data.get(position).getPrice(), position);
+        }
+    }
+
+    public void setVipRechargerItemCallBack(VipRechargerItemCallBack vipRechargerItemCallBack) {
+        this.vipRechargerItemCallBack = vipRechargerItemCallBack;
+    }
+
+    public interface VipRechargerItemCallBack {
+        void onVipItemClick(String title, int price, int position);
     }
 }
