@@ -1,11 +1,13 @@
 package com.dt.wsjf.utils;
 
 import android.Manifest;
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.support.v4.app.ActivityCompat;
 import android.support.v4.content.ContextCompat;
+import android.telephony.TelephonyManager;
 
 /**
  * Created by wangxun on 2018/3/13.
@@ -48,7 +50,8 @@ public class AppUtil {
                         Manifest.permission.WRITE_CONTACTS,
                         Manifest.permission.GET_ACCOUNTS,
                         Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_PHONE_STATE
                 }
         );
         if (isAllGranted) {
@@ -63,9 +66,22 @@ public class AppUtil {
                         Manifest.permission.WRITE_CONTACTS,
                         Manifest.permission.GET_ACCOUNTS,
                         Manifest.permission.READ_EXTERNAL_STORAGE,
-                        Manifest.permission.WRITE_EXTERNAL_STORAGE
+                        Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                        Manifest.permission.READ_PHONE_STATE
                 },
                 MY_PERMISSION_REQUEST_CODE
         );
+    }
+
+    @SuppressLint("MissingPermission")
+    public static String getIMEI(Context context) {
+        String imei;
+        try {
+            TelephonyManager telephonyManager = (TelephonyManager) context.getSystemService(Context.TELEPHONY_SERVICE);
+            imei = telephonyManager.getDeviceId();
+        } catch (Exception e) {
+            imei = "";
+        }
+        return imei;
     }
 }

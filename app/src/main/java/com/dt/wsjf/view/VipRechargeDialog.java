@@ -14,7 +14,7 @@ import android.widget.TextView;
 import com.chad.library.adapter.base.BaseQuickAdapter;
 import com.dt.wsjf.R;
 import com.dt.wsjf.adapter.VipRechargeAdapter;
-import com.dt.wsjf.bean.VipRechargeBean;
+import com.dt.wsjf.bean.PriceConfigBean;
 import com.dt.wsjf.utils.LogUtil;
 
 import java.util.ArrayList;
@@ -29,40 +29,13 @@ public class VipRechargeDialog extends Dialog implements VipRechargeAdapter.OnIt
     private TextView cancelTxt;
     private RecyclerView rechargeRecyclerView;
     private VipRechargeAdapter vipRechargeAdapter;
-    private List<VipRechargeBean> data = new ArrayList<>();
+    private List<PriceConfigBean.DataBean> data = new ArrayList<>();
     private VipRechargerItemCallBack vipRechargerItemCallBack;
 
-    public VipRechargeDialog(@NonNull Context context) {
+    public VipRechargeDialog(@NonNull Context context, List<PriceConfigBean.DataBean> data) {
         super(context);
         this.context = context;
-        initData();
-    }
-
-    private void initData() {
-        VipRechargeBean data1 = new VipRechargeBean();
-        data1.setTitle("(限时)体验会员");
-        data1.setPrice(3);
-        data1.setContent("体验会员每天可加100粉，可使用3天");
-        data.add(data1);
-
-        VipRechargeBean data2 = new VipRechargeBean();
-        data2.setTitle("青铜会员");
-        data2.setPrice(29);
-        data2.setContent("青铜会员每天可加200粉，可使用30天");
-        data.add(data2);
-
-        VipRechargeBean data3 = new VipRechargeBean();
-        data3.setTitle("白银会员");
-        data3.setPrice(69);
-        data3.setContent("白银会员每天可加300粉，可使用90天");
-        data.add(data3);
-
-        VipRechargeBean data4 = new VipRechargeBean();
-        data4.setTitle("黄金会员");
-        data4.setPrice(99);
-        data4.setContent("黄金会员每天加粉无限制，使用时间无限制");
-        data.add(data4);
-
+        this.data = data;
     }
 
     @Override
@@ -97,7 +70,7 @@ public class VipRechargeDialog extends Dialog implements VipRechargeAdapter.OnIt
         dismiss();
         LogUtil.d("onItemClick position --> " + position);
         if (vipRechargerItemCallBack != null) {
-            vipRechargerItemCallBack.onVipItemClick(data.get(position).getTitle(), data.get(position).getPrice(), position);
+            vipRechargerItemCallBack.onVipItemClick(data.get(position), position);
         }
     }
 
@@ -106,6 +79,6 @@ public class VipRechargeDialog extends Dialog implements VipRechargeAdapter.OnIt
     }
 
     public interface VipRechargerItemCallBack {
-        void onVipItemClick(String title, int price, int position);
+        void onVipItemClick(PriceConfigBean.DataBean dataBean, int position);
     }
 }

@@ -24,7 +24,7 @@
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
 
-    <!--推送所需的权限-->
+    <!-- 推送所需的权限 -->
     <uses-permission android:name="android.permission.RECEIVE_USER_PRESENT" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -43,7 +43,9 @@
             android:name="UMENG_CHANNEL"
             android:value="Common" />
 
-        <activity android:name=".ui.MainActivity">
+        <activity
+            android:name=".ui.MainActivity"
+            android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
 
@@ -109,7 +111,7 @@
             android:name="c.b.a.B"
             android:screenOrientation="portrait"
             android:theme="@android:style/Theme.Translucent" />
-
+        <activity android:name="cn.bmob.pay.v3.act.PayAct" />
         <activity android:name=".ui.AboutActivity" />
 
         <provider
@@ -122,7 +124,7 @@
                 android:resource="@xml/provider_paths" />
         </provider>
 
-        <!--TODO 集成：1.2、添加推送所需要的服务和广播-->
+        <!-- TODO 集成：1.2、添加推送所需要的服务和广播 -->
         <service
             android:name="cn.bmob.push.lib.service.PushService"
             android:exported="true"
@@ -136,10 +138,11 @@
         <!-- 用于进程保活 -->
         <service
             android:name="cn.bmob.push.lib.service.PushNotifyService"
-            android:process=":bmobpush"></service>
+            android:process=":bmobpush" />
 
         <receiver android:name="cn.bmob.push.PushReceiver">
             <intent-filter>
+
                 <!-- 系统启动完成后会调用 -->
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
                 <!-- 解锁完成后会调用 -->
@@ -150,7 +153,7 @@
         </receiver>
 
         <!-- 第3步中创建的消息接收器，在这里进行注册 -->
-        <receiver android:name="com.dt.wsjf.receiver.MyPushMessageReceiver">
+        <receiver android:name=".receiver.MyPushMessageReceiver">
             <intent-filter>
                 <action android:name="cn.bmob.push.action.MESSAGE" />
             </intent-filter>
@@ -161,12 +164,20 @@
             android:name="cn.bmob.push.PushNotifyReceiver"
             android:process=":bmobpush">
             <intent-filter>
+
                 <!-- 接收心跳广播的action -->
                 <action android:name="cn.bmob.push.action.HEARTBEAT" />
                 <!-- 接收唤醒广播的action -->
                 <action android:name="cn.bmob.push.action.NOTIFY" />
             </intent-filter>
         </receiver>
+
+        <activity
+            android:name=".ui.SelectAddActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.DebugActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

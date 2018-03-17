@@ -23,7 +23,7 @@
                 android:ellipsize="marquee"
                 android:marqueeRepeatLimit="marquee_forever"
                 android:singleLine="true"
-                android:text="微商快粉最新公告，微商快粉最新公告，微商快粉最新公告，微商快粉最新公告"
+                android:text="微商快粉最新公告微商快粉最新公告微商快粉最新公告"
                 android:textColor="#ffff00"
                 android:textSize="@dimen/sp18" />
 
