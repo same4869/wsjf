@@ -5,7 +5,6 @@
     <!-- 必须的权限 -->
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.READ_PHONE_STATE" />
     <uses-permission android:name="android.permission.INTERNET" />
 
     <!-- 推荐的权限 -->
@@ -173,11 +172,18 @@
         </receiver>
 
         <activity
+            android:name=".wxapi.WXEntryActivity"
+            android:configChanges="keyboardHidden|orientation|screenSize"
+            android:exported="true"
+            android:screenOrientation="portrait"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+        <activity
             android:name=".ui.SelectAddActivity"
             android:screenOrientation="portrait" />
         <activity
             android:name=".ui.DebugActivity"
             android:screenOrientation="portrait" />
+        <activity android:name=".ui.CommWebActivity"></activity>
     </application>
 
 </manifest>

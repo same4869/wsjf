@@ -6,8 +6,14 @@ import com.dt.wsjf.app.WsjfApplication;
 import com.dt.wsjf.bean.CommConf;
 import com.dt.wsjf.bean.PriceConfigBean;
 import com.dt.wsjf.bean.UserInfo;
+import com.dt.wsjf.bean.phonelist;
 import com.dt.wsjf.sp.CommSetting;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
 import java.util.List;
 
 import cn.bmob.v3.Bmob;
@@ -74,7 +80,7 @@ public class BmobUtil {
         userInfo.setNumsOfDay(100);
         userInfo.setVipShouldNums(0);
         userInfo.setVipLevel(0);
-        userInfo.setVipEndTime(0);
+        userInfo.setVipEndTime("0");
         userInfo.save(new SaveListener<String>() {
             @Override
             public void done(String objectId, BmobException e) {
@@ -87,7 +93,7 @@ public class BmobUtil {
                     if (bmobResultListener != null) {
                         bmobResultListener.onError(e);
                     }
-                    LogUtil.d("初始化数据失败 deviceId --> " + deviceId);
+                    LogUtil.d("初始化数据失败 deviceId --> " + deviceId + " e --> " + e.getMessage());
                 }
             }
         });
@@ -97,13 +103,17 @@ public class BmobUtil {
      * 获得服务器时间
      */
     public static void getServerTime() {
-        Bmob.getServerTime(new QueryListener<Long>() {
-            @Override
-            public void done(Long aLong, BmobException e) {
-                WsjfApplication.currentServerTime = aLong * 1000;
-                LogUtil.d("serverTime : " + aLong * 1000);
-            }
-        });
+        if (AppUtil.isNetworkAvalible()) {
+            Bmob.getServerTime(new QueryListener<Long>() {
+                @Override
+                public void done(Long aLong, BmobException e) {
+                    WsjfApplication.currentServerTime = aLong;
+                    LogUtil.d("serverTime : " + aLong);
+                }
+            });
+        } else {
+            WsjfApplication.currentServerTime = System.currentTimeMillis() / 1000;
+        }
     }
 
     /**
@@ -116,8 +126,9 @@ public class BmobUtil {
             return;
         }
         long lastTime = vipEndTime - WsjfApplication.getCurrentTime();
+        LogUtil.d("getVipLastDay vipEndTime:" + vipEndTime + " lastTime:" + lastTime);
         if (bmobResultListener != null) {
-            bmobResultListener.onSuccess(lastTime / (1000 * 3600 * 24));
+            bmobResultListener.onSuccess(lastTime / (3600 * 24));
         }
     }
 
@@ -128,8 +139,9 @@ public class BmobUtil {
      * @param numsOfDay
      */
     public static int getTodayAddNums(Context context, int vipShouldNums, int numsOfDay) {
+        LogUtil.d("WsjfApplication.getCurrentTime() --> " + WsjfApplication.getCurrentTime() + " CommSetting.getLastSyncTime() --> " + CommSetting.getLastSyncTime());
         //一天之内还没有比较过
-        if (WsjfApplication.getCurrentTime() - CommSetting.getLastSyncTime() > 1000 * 60 * 60 * 24) {
+        if (WsjfApplication.getCurrentTime() - CommSetting.getLastSyncTime() > 60 * 60 * 24) {
             CommSetting.setLastSyncTime(WsjfApplication.getCurrentTime());
             if (vipShouldNums > numsOfDay) {
                 syncNums(AppUtil.getIMEI(context));
@@ -169,7 +181,7 @@ public class BmobUtil {
      * @param deviceId
      * @param dataBean
      */
-    public static void updateInfoWhenPay(String deviceId, final PriceConfigBean.DataBean dataBean) {
+    public static void updateInfoWhenPay(final String deviceId, final PriceConfigBean.DataBean dataBean) {
         BmobQuery<UserInfo> query = new BmobQuery<UserInfo>();
         query.addWhereEqualTo("deviceId", deviceId);
         query.findObjects(new FindListener<UserInfo>() {
@@ -182,8 +194,9 @@ public class BmobUtil {
                         UserInfo userInfo = new UserInfo();
                         userInfo.setVipLevel(dataBean.getVipLevel());
                         userInfo.setVipShouldNums(dataBean.getVipCounts());
-                        userInfo.setNumsOfDay(dataBean.getVipDays());
-                        userInfo.setVipEndTime(WsjfApplication.currentServerTime + dataBean.getVipDays() * 24 * 60 * 60 * 1000);
+                        userInfo.setNumsOfDay(list.get(0).getNumsOfDay() + dataBean.getVipCounts());
+                        userInfo.setVipEndTime(String.valueOf(WsjfApplication.currentServerTime + dataBean.getVipDays() * 24 * 60 * 60));
+                        userInfo.setDeviceId(deviceId);
                         userInfo.update(list.get(0).getObjectId(), new UpdateListener() {
                             @Override
                             public void done(BmobException e) {
@@ -209,7 +222,7 @@ public class BmobUtil {
      *
      * @param deviceId
      */
-    public static void whenSync50End(String deviceId, final BmobResultListener listener) {
+    public static void whenSync50End(final String deviceId, final BmobResultListener listener) {
         BmobQuery<UserInfo> query = new BmobQuery<UserInfo>();
         query.addWhereEqualTo("deviceId", deviceId);
         query.findObjects(new FindListener<UserInfo>() {
@@ -222,6 +235,10 @@ public class BmobUtil {
                         UserInfo userInfo = new UserInfo();
                         int newNum = list.get(0).getNumsOfDay();
                         userInfo.setNumsOfDay(newNum - 50);
+                        userInfo.setDeviceId(deviceId);
+                        userInfo.setVipEndTime(list.get(0).getVipEndTime());
+                        userInfo.setVipLevel(list.get(0).getVipLevel());
+                        userInfo.setVipShouldNums(list.get(0).getVipShouldNums());
                         userInfo.update(list.get(0).getObjectId(), new UpdateListener() {
                             @Override
                             public void done(BmobException e) {
@@ -251,7 +268,7 @@ public class BmobUtil {
      *
      * @param deviceId
      */
-    public static void syncNums(String deviceId) {
+    public static void syncNums(final String deviceId) {
         BmobQuery<UserInfo> query = new BmobQuery<UserInfo>();
         query.addWhereEqualTo("deviceId", deviceId);
         query.findObjects(new FindListener<UserInfo>() {
@@ -262,8 +279,11 @@ public class BmobUtil {
                     if (list.size() > 0) {
                         LogUtil.d("syncNums  list.get(0).getObjectId():" + list.get(0).getObjectId());
                         UserInfo userInfo = new UserInfo();
-                        int newNum = list.get(0).getNumsOfDay();
                         userInfo.setNumsOfDay(list.get(0).getVipShouldNums());
+                        userInfo.setDeviceId(deviceId);
+                        userInfo.setVipEndTime(list.get(0).getVipEndTime());
+                        userInfo.setVipLevel(list.get(0).getVipLevel());
+                        userInfo.setVipShouldNums(list.get(0).getVipShouldNums());
                         userInfo.update(list.get(0).getObjectId(), new UpdateListener() {
                             @Override
                             public void done(BmobException e) {
@@ -286,10 +306,11 @@ public class BmobUtil {
 
     /**
      * 当分享是增加的加粉数
+     *
      * @param deviceId
      * @param listener
      */
-    public static void whenShareAddNum(String deviceId, final BmobResultListener listener) {
+    public static void whenShareAddNum(final String deviceId, final BmobResultListener listener) {
         if (WsjfApplication.addNumPreShare == 0) {
             return;
         }
@@ -305,6 +326,10 @@ public class BmobUtil {
                         UserInfo userInfo = new UserInfo();
                         int newNum = list.get(0).getNumsOfDay();
                         userInfo.setNumsOfDay(newNum + WsjfApplication.addNumPreShare);
+                        userInfo.setDeviceId(deviceId);
+                        userInfo.setVipEndTime(list.get(0).getVipEndTime());
+                        userInfo.setVipLevel(list.get(0).getVipLevel());
+                        userInfo.setVipShouldNums(list.get(0).getVipShouldNums());
                         userInfo.update(list.get(0).getObjectId(), new UpdateListener() {
                             @Override
                             public void done(BmobException e) {
@@ -324,6 +349,45 @@ public class BmobUtil {
                 } else {
                     listener.onError(null);
                     LogUtil.d("whenShareAddNum 请求失败 " + e.getMessage());
+                }
+            }
+        });
+    }
+
+    public static void selectAddGroupByCitys(final BmobResultListener listener) {
+        final ArrayList<String> citys = new ArrayList<>();
+        BmobQuery<phonelist> query = new BmobQuery<phonelist>();
+        query.groupby(new String[]{"city"});//按照时间和游戏名进行分组
+        query.order("-createdAt");//降序排列
+        query.findStatistics(phonelist.class, new QueryListener<JSONArray>() {
+
+            @Override
+            public void done(JSONArray ary, BmobException e) {
+                if (e == null) {
+                    if (ary != null) {
+                        int length = ary.length();
+                        try {
+                            citys.add("不限");
+                            for (int i = 0; i < length; i++) {
+                                JSONObject obj = ary.getJSONObject(i);
+                                String city = obj.getString("city");
+                                citys.add(city);
+                                LogUtil.d("selectAddGroupByCitys city --> " + city);
+                            }
+                            if (listener != null) {
+                                listener.onSuccess(citys);
+                            }
+                        } catch (JSONException e1) {
+                            e1.printStackTrace();
+                            listener.onError(e);
+                        }
+                    } else {
+                        LogUtil.d("selectAddGroupByCitys 请求成功但无数据 ");
+                        listener.onError(e);
+                    }
+                } else {
+                    LogUtil.d("selectAddGroupByCitys 请求失败 " + e.getMessage());
+                    listener.onError(e);
                 }
             }
         });

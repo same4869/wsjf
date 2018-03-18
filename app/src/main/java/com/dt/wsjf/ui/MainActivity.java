@@ -7,6 +7,7 @@ import android.content.pm.PackageManager;
 import android.os.Handler;
 import android.os.Message;
 import android.os.Bundle;
+import android.text.TextUtils;
 import android.view.KeyEvent;
 import android.view.MotionEvent;
 import android.view.View;
@@ -48,22 +49,34 @@ import cn.bmob.v3.listener.CountListener;
 import cn.bmob.v3.listener.FindListener;
 import commlib.xun.com.commlib.thread.CommThreadPool;
 
+import static com.dt.wsjf.config.Constants.HELP_INDEX_URL;
+import static com.dt.wsjf.ui.CommWebActivity.COMM_WEB_URL;
+import static com.dt.wsjf.ui.SelectAddActivity.RESULT_CITY_KEY;
+import static com.dt.wsjf.ui.SelectAddActivity.RESULT_SEX_KEY;
+
 public class MainActivity extends BaseActivity implements VipRechargeDialog.VipRechargerItemCallBack {
     private static final int MY_PERMISSION_REQUEST_CODE = 10000;
     private static final int PRE_PHONE_NUM = 50;
     private static final int ADD_CONTACT_WHAT = 1001;
     private static final int DELETE_CONTACT_WHAT = 1002;
+    private static final int REQUEST_SELECT_ADD_CODE = 1003;
 
     private BouncyBtnView bouncyBtnView;
     private TextView adsTv;
     private ItemView vipItem, shuomingItem, saixuanItem, haoduanItem, qingchuItem, jiangshiItem, shareItem, aboutItem;
     private LinearLayout loadingLayout;
     private TextView jiaFenNumTip;
+    private TextView vipTv, vipEndTimeTv;
+    private TextView filterModeTv;
 
     private List<phonelist> phonelists = new ArrayList<>();
     private String deviceId;
     private Boolean is2CallBack = false;// 是否双击退出
     private UserInfo userInfo;
+    private String city;
+    private int sex;
+    private int totleCount;
+    private int filterMode = 0; //0是正常，1是筛选，2是号段
 
     @SuppressLint("HandlerLeak")
     private Handler mHandler = new Handler() {
@@ -78,6 +91,7 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
                         @Override
                         public void onSuccess(Object object) {
                             initData();
+                            getPhoneListInfo((int) (totleCount * Math.random()), city, sex);
                         }
 
                         @Override
@@ -119,28 +133,70 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
             public void onSuccess(Object object) {
                 if (object != null) {//已经有该用户的信息了
                     userInfo = (UserInfo) object;
+                    setVipStatus(userInfo.getVipLevel());
                     jiaFenNumTip.setText("您今天还有" + BmobUtil.getTodayAddNums(getApplicationContext(), userInfo.getVipShouldNums(), userInfo.getNumsOfDay()) + "个加粉名额");
-                } else {//没有该用户的信息，创建一条默认的
-                    BmobUtil.addInfoFromId(deviceId, new BmobUtil.BmobResultListener() {
+                    BmobUtil.getVipLastDay(Long.parseLong(userInfo.getVipEndTime()), new BmobUtil.BmobResultListener() {
                         @Override
                         public void onSuccess(Object object) {
-                            initData();
+                            vipEndTimeTv.setText("VIP剩余时间:" + object + "天");
                         }
 
                         @Override
                         public void onError(BmobException e) {
-
+                            LogUtil.d("getVipLastDay失败");
                         }
                     });
+
+                } else {//没有该用户的信息，创建一条默认的
+                    if (!TextUtils.isEmpty(deviceId)) {
+                        BmobUtil.addInfoFromId(deviceId, new BmobUtil.BmobResultListener() {
+                            @Override
+                            public void onSuccess(Object object) {
+                                initData();
+                            }
+
+                            @Override
+                            public void onError(BmobException e) {
+
+                            }
+                        });
+                    } else {
+                        Toast.makeText(getApplicationContext(), "数据初始化失败,请同意权限请求并重启APP", Toast.LENGTH_SHORT).show();
+                    }
                 }
             }
 
             @Override
             public void onError(BmobException e) {
-                Toast.makeText(getApplicationContext(), "数据初始化失败，请重新进入app", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "数据初始化失败，请检查网络并重新进入app", Toast.LENGTH_SHORT).show();
                 LogUtil.d("queryInfoById onError e --> " + e.getMessage());
             }
         });
+    }
+
+    private void setVipStatus(int level) {
+        switch (level) {
+            case 0:
+                vipTv.setVisibility(View.VISIBLE);
+                vipTv.setText("普通用户");
+                break;
+            case 1:
+                vipTv.setVisibility(View.VISIBLE);
+                vipTv.setText("体验会员");
+                break;
+            case 2:
+                vipTv.setVisibility(View.VISIBLE);
+                vipTv.setText("青铜会员");
+                break;
+            case 3:
+                vipTv.setVisibility(View.VISIBLE);
+                vipTv.setText("白银会员");
+                break;
+            case 4:
+                vipTv.setVisibility(View.VISIBLE);
+                vipTv.setText("黄金会员");
+                break;
+        }
     }
 
     private void initView() {
@@ -166,7 +222,7 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
                         Toast.makeText(getApplicationContext(), "您今天的加粉名额不足", Toast.LENGTH_SHORT).show();
                     }
                 } else {
-                    Toast.makeText(getApplicationContext(), "数据初始化失败，请重新进入app", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "数据初始化失败，请检查网络并重新进入app", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -186,7 +242,7 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
                         jsonFormatExcetion.printStackTrace();
                     }
                 } else {
-                    Toast.makeText(getApplicationContext(), "数据初始化失败，请重新进入app", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "数据初始化失败，请检查网络并重新进入app", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -194,22 +250,28 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
         shuomingItem.setItemContent(R.drawable.help_d, "使用帮助", "查看这里可以快速入门加粉", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                Intent intent = new Intent(MainActivity.this, CommWebActivity.class);
+                intent.putExtra(COMM_WEB_URL, HELP_INDEX_URL);
+                startActivity(intent);
             }
         });
         saixuanItem = (ItemView) findViewById(R.id.saixuan_item);
         saixuanItem.setItemContent(R.drawable.saixuan, "筛选加粉", "可以让您更精准地加到需要的粉丝", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Intent intent = new Intent(MainActivity.this, SelectAddActivity.class);
-                startActivity(intent);
+                if (userInfo != null && userInfo.getVipLevel() > 0) {
+                    Intent intent = new Intent(MainActivity.this, SelectAddActivity.class);
+                    startActivityForResult(intent, REQUEST_SELECT_ADD_CODE);
+                } else {
+                    Toast.makeText(getApplicationContext(), "筛选功能所有会员均可免费试用", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         haoduanItem = (ItemView) findViewById(R.id.haoduan_item);
         haoduanItem.setItemContent(R.drawable.haoduan_d, "号段加粉", "可以让您根据号段来添加粉丝", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-
+                Toast.makeText(getApplicationContext(), "即将上线，上线后所有会员均可免费使用", Toast.LENGTH_SHORT).show();
             }
         });
         qingchuItem = (ItemView) findViewById(R.id.qingchu_item);
@@ -223,7 +285,7 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
         jiangshiItem.setItemContent(R.drawable.jiangshi, "清除死粉", "可以帮您迅速找到死粉与僵尸粉", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                Toast.makeText(getApplicationContext(), "即将上线，上线后所有会员   可免费使用", Toast.LENGTH_SHORT).show();
+                Toast.makeText(getApplicationContext(), "即将上线，上线后所有会员均可免费使用", Toast.LENGTH_SHORT).show();
             }
         });
         shareItem = (ItemView) findViewById(R.id.share_item);
@@ -258,6 +320,9 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
                 return true;
             }
         });
+        vipTv = (TextView) findViewById(R.id.vip_tx);
+        vipEndTimeTv = (TextView) findViewById(R.id.vip_end_time_tx);
+        filterModeTv = (TextView) findViewById(R.id.filter_mode_tx);
     }
 
     private UMShareListener umShareListener = new UMShareListener() {
@@ -269,7 +334,17 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
         @Override
         public void onResult(SHARE_MEDIA share_media) {
             LogUtil.d("umShareListener onResult");
+            BmobUtil.whenShareAddNum(AppUtil.getIMEI(getApplicationContext()), new BmobUtil.BmobResultListener() {
+                @Override
+                public void onSuccess(Object object) {
+                    Toast.makeText(getApplicationContext(), "分享成功，成功获得额外加粉名额" + WsjfApplication.addNumPreShare + "个", Toast.LENGTH_SHORT).show();
+                }
 
+                @Override
+                public void onError(BmobException e) {
+
+                }
+            });
         }
 
         @Override
@@ -300,6 +375,13 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         UMShareAPI.get(this).onActivityResult(requestCode, resultCode, data);
+        if (requestCode == REQUEST_SELECT_ADD_CODE && data != null && resultCode == RESULT_OK) {
+            city = data.getStringExtra(RESULT_CITY_KEY);
+            sex = data.getIntExtra(RESULT_SEX_KEY, 0);
+            getPhoneListInfo((int) (totleCount * Math.random()), city, sex);
+            filterMode = 1;
+            filterModeTv.setText("筛选模式:筛选");
+        }
     }
 
     @Override
@@ -421,7 +503,8 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
             public void done(Integer count, BmobException e) {
                 if (e == null) {
                     LogUtil.d("getPhoneListCount count对象个数为：" + count);
-                    getPhoneListInfo((int) (count * Math.random()));
+                    totleCount = count;
+                    getPhoneListInfo((int) (count * Math.random()), null, 0);
                 } else {
                     LogUtil.d("getPhoneListCount 失败：" + e.getMessage() + "," + e.getErrorCode());
                 }
@@ -429,9 +512,16 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
         });
     }
 
-    private void getPhoneListInfo(int max) {
+    private void getPhoneListInfo(int max, String city, int sex) {
+        LogUtil.d("getPhoneListInfo city:" + city + " sex:" + sex + " indexmax:" + max);
         BmobQuery<phonelist> query = new BmobQuery<phonelist>();
         query.addWhereGreaterThan("id", max);
+        if (!TextUtils.isEmpty(city)) {
+            query.addWhereEqualTo("city", city);
+        }
+        if (sex == 1 || sex == 2) {
+            query.addWhereEqualTo("sex", sex);
+        }
         query.setLimit(50);
         query.findObjects(new FindListener<phonelist>() {
             @Override

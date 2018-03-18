@@ -11,7 +11,7 @@ public class UserInfo extends BmobObject {
     private int numsOfDay;
     private int vipShouldNums;
     private int vipLevel; //非会员0，青铜1，白银2，黄金3
-    private long vipEndTime;
+    private String vipEndTime;
 
     public String getDeviceId() {
         return deviceId;
@@ -45,11 +45,11 @@ public class UserInfo extends BmobObject {
         this.vipLevel = vipLevel;
     }
 
-    public long getVipEndTime() {
+    public String getVipEndTime() {
         return vipEndTime;
     }
 
-    public void setVipEndTime(long vipEndTime) {
+    public void setVipEndTime(String vipEndTime) {
         this.vipEndTime = vipEndTime;
     }
 }

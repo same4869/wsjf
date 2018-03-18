@@ -1,27 +1,34 @@
 package com.dt.wsjf.ui;
 
+import android.content.Intent;
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
-import android.util.TypedValue;
-import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
-import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import com.dt.wsjf.R;
 import com.dt.wsjf.adapter.GirdDropDownAdapter;
 import com.dt.wsjf.adapter.ListDropDownAdapter;
 import com.dt.wsjf.base.BaseActivity;
+import com.dt.wsjf.utils.BmobUtil;
+import com.dt.wsjf.utils.LogUtil;
+import com.dt.wsjf.view.BouncyBtnView;
 import com.yyydjk.library.DropDownMenu;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+import cn.bmob.v3.exception.BmobException;
+
 public class SelectAddActivity extends BaseActivity {
-    private String citys[] = {"不限", "武汉", "北京", "上海", "成都", "广州", "深圳", "重庆", "天津", "西安", "南京", "杭州"};
+    public static String RESULT_CITY_KEY = "result_city_key";
+    public static String RESULT_SEX_KEY = "result_sex_key";
+
+    private ArrayList<String> citys = new ArrayList<>();
     private String sexs[] = {"不限", "男", "女"};
     private String headers[] = {"城市", "性别"};
 
@@ -29,13 +36,33 @@ public class SelectAddActivity extends BaseActivity {
     private GirdDropDownAdapter cityAdapter;
     private ListDropDownAdapter sexAdapter;
     private DropDownMenu mDropDownMenu;
+    private TextView loadingView;
+    private String city;
+    private int sex;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_select_add);
+        loadingView = (TextView) findViewById(R.id.select_add_loading);
 
-        initView();
+        initData();
+    }
+
+    private void initData() {
+        BmobUtil.selectAddGroupByCitys(new BmobUtil.BmobResultListener() {
+            @Override
+            public void onSuccess(Object object) {
+                citys = (ArrayList<String>) object;
+                initView();
+                loadingView.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onError(BmobException e) {
+                Toast.makeText(getApplicationContext(), "初始化数据失败，请检查网络再重试", Toast.LENGTH_SHORT).show();
+            }
+        });
     }
 
     private void initView() {
@@ -43,7 +70,7 @@ public class SelectAddActivity extends BaseActivity {
 
         //init city menu
         final ListView cityView = new ListView(this);
-        cityAdapter = new GirdDropDownAdapter(this, Arrays.asList(citys));
+        cityAdapter = new GirdDropDownAdapter(this, citys);
         cityView.setDividerHeight(0);
         cityView.setAdapter(cityAdapter);
 
@@ -61,9 +88,14 @@ public class SelectAddActivity extends BaseActivity {
         cityView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
-                cityAdapter.setCheckItem(position);
-                mDropDownMenu.setTabText(position == 0 ? headers[0] : citys[position]);
-                mDropDownMenu.closeMenu();
+                if (citys.size() > 0) {
+                    cityAdapter.setCheckItem(position);
+                    mDropDownMenu.setTabText(position == 0 ? headers[0] : citys.get(position));
+                    mDropDownMenu.closeMenu();
+                    city = position == 0 ? null : citys.get(position);
+                } else {
+                    Toast.makeText(getApplicationContext(), "初始化数据失败，请检查网络再重试", Toast.LENGTH_SHORT).show();
+                }
             }
         });
 
@@ -71,20 +103,30 @@ public class SelectAddActivity extends BaseActivity {
             @Override
             public void onItemClick(AdapterView<?> parent, View view, int position, long id) {
                 sexAdapter.setCheckItem(position);
-                mDropDownMenu.setTabText(position == 0 ? headers[2] : sexs[position]);
+                mDropDownMenu.setTabText(position == 0 ? headers[1] : sexs[position]);
                 mDropDownMenu.closeMenu();
+                sex = position;
             }
         });
 
-        //init context view
-        TextView contentView = new TextView(this);
-        contentView.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
-        contentView.setText("内容显示区域");
-        contentView.setGravity(Gravity.CENTER);
-        contentView.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+        View rootView = LayoutInflater.from(getApplicationContext()).inflate(R.layout.select_add_content, null);
+
+        BouncyBtnView bouncyBtnView = (BouncyBtnView) rootView.findViewById(R.id.select_add_btn);
+        bouncyBtnView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                Toast.makeText(getApplicationContext(), "模式更改成功，现在可以根据您指定的条件同步了", Toast.LENGTH_LONG).show();
+                Intent data = new Intent();
+                LogUtil.d("selectedAdd city:" + city + " sex:" + sex);
+                data.putExtra(RESULT_CITY_KEY, city);
+                data.putExtra(RESULT_SEX_KEY, sex);
+                setResult(RESULT_OK, data);
+                finish();
+            }
+        });
 
         //init dropdownview
-        mDropDownMenu.setDropDownMenu(Arrays.asList(headers), popupViews, contentView);
+        mDropDownMenu.setDropDownMenu(Arrays.asList(headers), popupViews, rootView);
     }
 
     @Override

@@ -108,7 +108,7 @@ public class WsjfApplication extends Application {
         if (currentServerTime != 0) {
             return currentServerTime;
         } else {
-            return System.currentTimeMillis();
+            return System.currentTimeMillis() / 1000;
         }
     }
 
