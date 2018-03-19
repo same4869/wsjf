@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
-    android:id="@+id/skin_view_root"
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#ff0000">
 
-    <WebView
-        android:id="@+id/comm_web"
+    <ImageView
+        android:id="@+id/cover_img"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        android:layout_marginTop="@dimen/dp75" />
+        android:scaleType="centerCrop"
+        android:src="@drawable/splash" />
 
-</RelativeLayout>
+</LinearLayout>

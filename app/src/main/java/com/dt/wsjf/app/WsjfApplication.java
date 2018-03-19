@@ -33,6 +33,7 @@ public class WsjfApplication extends Application {
     public static String adsStr;//公告信息，每次启动拉一次
     public static String priceInfoStr;//VIP付款信息，每次启动拉一次
     public static int addNumPreShare;//每次分享获得的增加数
+    public static String shareInfo;//分享内容配置信息
 
     public static WsjfApplication getInstance() {
         return mApplication;
@@ -77,6 +78,18 @@ public class WsjfApplication extends Application {
 
             BmobUtil.getServerTime();
             BmobUtil.getConfigInfo();
+
+            /**
+             * 调用统计SDK
+             *
+             * @param appKey
+             *            Bmob平台的Application ID
+             * @param channel
+             *            当前包所在渠道，可以为空
+             * @return 是否成功，如果失败请看logcat，可能是混淆或so文件未正确配置
+             */
+
+            cn.bmob.v3.statistics.AppStat.i("a314e168943a3645670039b26a2d3cc6", "common");
         }
     }
 

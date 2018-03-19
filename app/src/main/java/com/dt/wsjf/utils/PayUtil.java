@@ -4,6 +4,7 @@ import android.content.Context;
 import android.widget.Toast;
 
 import com.dt.wsjf.bean.PriceConfigBean;
+import com.dt.wsjf.config.Constants;
 
 import c.b.BP;
 import c.b.PListener;
@@ -28,7 +29,11 @@ public class PayUtil {
         // 仍然可以通过这种方式支付，其中true为支付宝，false为微信
         // BP.pay(name, getBody(), getPrice(), false, new PListener());
         //dataBean.getPrice()
-        BP.pay(name, "微商快粉VIP升级", 0.02, payType, new PListener() {
+        double money = 0.02;
+        if (!Constants.IS_DEBUG) {
+            money = dataBean.getPrice();
+        }
+        BP.pay(name, "微商快粉VIP升级", money, payType, new PListener() {
 
             // 支付成功,如果金额较大请手动查询确认
             @Override

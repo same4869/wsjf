@@ -10,6 +10,15 @@ public class CommConf extends BmobObject {
     private String ads;//公告
     private String priceConfig;//价格配置信息，json串
     private int addNumPreShare; //每次分享增加的数量
+    private String shareInfo;//分享的内容配置
+
+    public String getShareInfo() {
+        return shareInfo;
+    }
+
+    public void setShareInfo(String shareInfo) {
+        this.shareInfo = shareInfo;
+    }
 
     public int getAddNumPreShare() {
         return addNumPreShare;

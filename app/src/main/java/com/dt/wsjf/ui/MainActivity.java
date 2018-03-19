@@ -19,6 +19,7 @@ import com.dt.wsjf.R;
 import com.dt.wsjf.app.WsjfApplication;
 import com.dt.wsjf.base.BaseActivity;
 import com.dt.wsjf.bean.PriceConfigBean;
+import com.dt.wsjf.bean.ShareInfo;
 import com.dt.wsjf.bean.UserInfo;
 import com.dt.wsjf.bean.phonelist;
 import com.dt.wsjf.json.JSONFormatExcetion;
@@ -263,7 +264,7 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
                     Intent intent = new Intent(MainActivity.this, SelectAddActivity.class);
                     startActivityForResult(intent, REQUEST_SELECT_ADD_CODE);
                 } else {
-                    Toast.makeText(getApplicationContext(), "筛选功能所有会员均可免费试用", Toast.LENGTH_SHORT).show();
+                    Toast.makeText(getApplicationContext(), "筛选功能所有会员均可免费使用", Toast.LENGTH_SHORT).show();
                 }
             }
         });
@@ -292,16 +293,25 @@ public class MainActivity extends BaseActivity implements VipRechargeDialog.VipR
         shareItem.setItemContent(R.drawable.share_d, "分享软件", "分享我们的软件，可以增加加粉名额哦~", new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                UMImage image = new UMImage(MainActivity.this, R.mipmap.ic_launcher);//资源文件
-                UMImage thumb = new UMImage(MainActivity.this, R.mipmap.ic_launcher);
-                image.setThumb(thumb);
-                image.compressStyle = UMImage.CompressStyle.SCALE;
-                UMWeb web = new UMWeb("http://www.baidu.com");
-                web.setTitle("微商快粉--十天加满你的微信好友");//标题
-                web.setThumb(thumb);  //缩略图
-                web.setDescription("我在使用一款超好用的人脉管理与营销工具，让微信的操作批量自动化，加粉、清粉，上面有上百万的用户信息，让我的加粉效率大大提高，你也快来下载吧：");//描述
-                new ShareAction(MainActivity.this).withText("微商快粉").withExtra(image).withMedia(web).setDisplayList(SHARE_MEDIA.WEIXIN, SHARE_MEDIA.WEIXIN_CIRCLE, SHARE_MEDIA.QQ, SHARE_MEDIA.SINA, SHARE_MEDIA.ALIPAY, SHARE_MEDIA.DOUBAN, SHARE_MEDIA.SMS)
-                        .setCallback(umShareListener).open();
+                if (WsjfApplication.shareInfo != null) {
+                    try {
+                        ShareInfo shareInfo = JSONToBeanHandler.fromJsonString(WsjfApplication.shareInfo, ShareInfo.class);
+                        UMImage image = new UMImage(MainActivity.this, R.mipmap.ic_launcher);//资源文件
+                        UMImage thumb = new UMImage(MainActivity.this, R.mipmap.ic_launcher);
+                        image.setThumb(thumb);
+                        image.compressStyle = UMImage.CompressStyle.SCALE;
+                        UMWeb web = new UMWeb(shareInfo.getShareUrl());
+                        web.setTitle(shareInfo.getShareTilte());//标题
+                        web.setThumb(thumb);  //缩略图
+                        web.setDescription(shareInfo.getShareContent());//描述
+                        new ShareAction(MainActivity.this).withText("微商快粉").withExtra(image).withMedia(web).setDisplayList(SHARE_MEDIA.WEIXIN, SHARE_MEDIA.WEIXIN_CIRCLE, SHARE_MEDIA.QQ, SHARE_MEDIA.SINA, SHARE_MEDIA.ALIPAY, SHARE_MEDIA.DOUBAN, SHARE_MEDIA.SMS)
+                                .setCallback(umShareListener).open();
+                    } catch (JSONFormatExcetion jsonFormatExcetion) {
+                        jsonFormatExcetion.printStackTrace();
+                    }
+                } else {
+                    Toast.makeText(getApplicationContext(), "数据初始化失败，请检查网络并重新进入app", Toast.LENGTH_SHORT).show();
+                }
             }
         });
         aboutItem = (ItemView) findViewById(R.id.about_item);

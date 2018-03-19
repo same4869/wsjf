@@ -43,7 +43,7 @@
             android:value="Common" />
 
         <activity
-            android:name=".ui.MainActivity"
+            android:name=".ui.SplashActivity"
             android:screenOrientation="portrait">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -183,7 +183,12 @@
         <activity
             android:name=".ui.DebugActivity"
             android:screenOrientation="portrait" />
-        <activity android:name=".ui.CommWebActivity"></activity>
+        <activity
+            android:name=".ui.CommWebActivity"
+            android:screenOrientation="portrait" />
+        <activity
+            android:name=".ui.MainActivity"
+            android:screenOrientation="portrait" />
     </application>
 
 </manifest>

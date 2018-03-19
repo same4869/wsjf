@@ -167,6 +167,7 @@ public class BmobUtil {
                         WsjfApplication.adsStr = list.get(0).getAds();
                         WsjfApplication.priceInfoStr = list.get(0).getPriceConfig();
                         WsjfApplication.addNumPreShare = list.get(0).getAddNumPreShare();
+                        WsjfApplication.shareInfo = list.get(0).getShareInfo();
                     }
                 } else {
                     LogUtil.d("CommConf 失败：" + e.getMessage() + "," + e.getErrorCode());
